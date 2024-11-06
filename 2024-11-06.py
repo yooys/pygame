@@ -8,7 +8,7 @@ pygame.init()
 WIDTH = 700
 HEIGHT = 600
 DISPLAYSF = pygame.display.set_mode((WIDTH,HEIGHT))
-pygame.display.set_captinon("Title")
+pygame.display.set_caption("Title")
 
 #메인 함수
 def main():
