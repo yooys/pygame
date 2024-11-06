@@ -27,13 +27,17 @@ def main():
                 col += 1
                 
         keys = pygame.key.get_pressed()
-        
         if keys[pygame.K_RIGHT]:
             player_pos[0] += 0.5
         elif keys[pygame.K_LEFT]:
             player_pos[0] -= 0.5
+        elif keys[pygame.K_UP]:
+            player_pos[1] -= 0.5
+        elif keys[pygame.K_DOWN]:
+            player_pos[1] += 0.5
+            
         
-        rect = pygame.Rect(300, 250, 100, 100)
+        rect = pygame.Rect(player_pos[0], player_pos[1], 100, 100)
         pygame.draw.rect(DISPLAYSF, col_arr[col % 3], rect)  
 
         pygame.display.update()
