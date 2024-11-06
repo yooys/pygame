@@ -15,6 +15,7 @@ def main():
     col_arr = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
     col = 0
     run = True
+    player_pos = [300,250]
     
     while run:
         DISPLAYSF.fill((255, 255, 255))
@@ -23,7 +24,14 @@ def main():
             if event.type == pygame.QUIT:
                 run = False
             if event.type == pygame.MOUSEMOTION:
-                col += 1  
+                col += 1
+                
+        keys = pygame.key.get_pressed()
+        
+        if keys[pygame.K_RIGHT]:
+            player_pos[0] += 0.5
+        elif keys[pygame.K_LEFT]:
+            player_pos[0] -= 0.5
         
         rect = pygame.Rect(300, 250, 100, 100)
         pygame.draw.rect(DISPLAYSF, col_arr[col % 3], rect)  
