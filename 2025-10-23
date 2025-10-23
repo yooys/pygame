@@ -1,0 +1,160 @@
+import pygame
+import sys
+import random
+
+pygame.init()
+WIDTH, HEIGHT = 800, 600
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+clock = pygame.time.Clock()
+
+White = (255, 255, 255)
+Black = (0, 0, 0)
+Red = (255, 0, 0)
+Green = ( 0, 255, 0)
+Blue = ( 0, 255, 0 )
+
+player_width,player_height = 60, 60
+player_x = WIDTH // 2 - player_width //2
+player_y = HEIGHT - player_height - 10
+player_speed = 7
+
+star_width, star_height = 30, 30
+star_x, star_y = random.randint(0, WIDTH - star_width)
+star_y = 0
+star_speed = 5
+
+star_img = pygame.image.load('star.png')
+star_img = pygame.transform.scale(star_img, (30, 30))
+
+score = 0
+font = pygame.font.Font(None, 36)
+
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type = pygame.QUIT:
+            running = False
+
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_LEFT]:
+        player_x -= player_speed
+    if keys[pygame.K_RIGHT]:
+        player_x += player_speed
+    if player_x < 0:
+        player_x = 0
+    if player_x > WIDTH - player_width:
+        player_x = WIDTH - player_width
+
+    star_y += star_speed
+
+    if star_y > HEIGHT:
+        star_y = 0
+        star_x = random.randint(0, WIDTH - star_width)
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"""
+pygame.init()
+screen = pygame.display.set_mode((800, 600))
+clock = pygame.time.Clock()
+
+player_x, player_y = 400, 300
+player_width, player_height = 50, 50
+player_speed = 5
+WIDTH, HEIGHT = 800, 600
+
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+            
+    keys = pygame.key.get_pressed()
+
+    if keys[pygame.K_LEFT]:
+        player_x -= player_speed
+    if keys[pygame.K_RIGHT]:
+        player_x += player_speed
+    if keys[pygame.K_UP]:
+        player_y -= player_speed
+    if keys[pygame.K_DOWN]:
+        player_y += player_speed
+
+    if player_x < 0:
+        player_x = 0
+    if player_x > WIDTH - player_width:
+        player_x = WIDTH - player_width
+    if player_y < 0:
+        player_y = 0
+    if player_y > HEIGHT - player_height:
+        player_y = HEIGHT - player_height
+
+    screen.fill((255, 255, 255))
+    pygame.draw.rect(screen, (255,0,0), (player_x, player_y, 50, 50))
+    pygame.display.flip()
+    clock.tick(60)
+        
+
+
+pygame.quit()
+
+
+
+
+
+
+
+
+
+
+
+
+
+pygame.init()
+screen = pygame.display.set_mode((800,600))
+pygame.display.set_caption("ABC")
+clock = pygame.time.Clock()
+
+running = True
+RED = (255, 0, 0)
+GREEN = (0 ,255, 0)
+BLUE = (0, 0, 255)
+player_img = pygame.image.load('깃허브.png')
+
+
+pygame.draw.rect(screen, RED, (100, 100, 200, 150))
+pygame.draw.line(screen, BLUE, (0,0), (800, 600), 5)
+pygame.draw.circle(screen, GREEN, (400, 300), 50)
+pygame.display.flip() #show같은 역할임
+
+
+running = True
+
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running  = False
+            
+    screen.fill((255,255,255))
+    screen.blit(player_img, (100,100))
+
+    pygame.draw.rect(screen, RED, (100, 100, 200, 150))
+    pygame.draw.line(screen, BLUE, (0,0), (800, 600), 5)
+    pygame.draw.circle(screen, GREEN, (400, 300), 50) 
+
+    pygame.display.flip()
+    
+pygame.quit()
+"""
