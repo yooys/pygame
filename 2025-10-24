@@ -1,0 +1,153 @@
+"""
+import pygame
+
+# [2단계] 코드
+MENU = 0
+PLAYING = 1
+GAME_OVER = 2
+
+game_state = MENU
+
+pygame.init()
+screen = pygame.display.set_mode((800, 600))
+font = pygame.font.Font(None, 74)
+small_font = pygame.font.Font(None, 36)
+clock = pygame.time.Clock()
+
+running = True
+
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        # [4단계] 코드
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                if game_state == MENU:
+                    game_state = PLAYING
+                elif game_state == GAME_OVER:
+                    game_state = MENU
+                    
+    screen.fill((0, 0, 0))
+		
+    if game_state == MENU:
+        title = font.render("GAME TITLE", True, (255, 255, 255))
+        instruction = small_font.render("PRESS SPACEBAR TO START GAME", True, (200, 200, 200))
+        screen.blit(title, (250, 200))
+        screen.blit(instruction, (200, 300))
+	
+    # [5단계] 코드
+    elif game_state == PLAYING:
+        game_text = font.render("INGAME!", True, (255, 255, 255))
+        screen.blit(game_text, (300, 250))
+
+    elif game_state == GAME_OVER:
+        game_over = font.render("GAME OVER", True, (255, 0, 0))
+        restart = small_font.render("PRESS SPACEBAR TO RESTART", True, (200, 200, 200))
+        screen.blit(game_over, (250, 200))
+        screen.blit(restart, (200, 300))
+        
+    pygame.display.flip()
+    clock.tick(60)
+
+pygame.quit()
+"""
+"""
+import pygame
+import random
+
+# [3단계] 코드
+class Player:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.width = 50
+        self.height = 50
+        self.speed = 5
+        self.color = (0, 0, 255)
+        
+# [4단계] 코드
+    def move(self, keys):
+        if keys[pygame.K_LEFT]:
+            self.x  -= self.speed
+        if keys[pygame.K_RIGHT]:
+            self.x  += self.speed
+        if keys[pygame.K_UP]:
+            self.y  -= self.speed
+        if keys[pygame.K_DOWN]:
+            self.y  += self.speed
+
+    def draw(self, screen):
+        pygame.draw.rect(screen, self.color, (self.x ,self.y, self.width, self.height))
+        
+        
+pygame.init()
+screen = pygame.display.set_mode((800,600))
+clock = pygame.time.Clock()
+
+# [5단계] 코드
+player = Player(400, 300)
+
+running = True
+
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+	
+	# [6단계] 코드
+    keys = pygame.key.get_pressed()
+    player.move(keys)
+
+    screen.fill((255, 255, 255))
+    player.draw(screen)
+    pygame.display.flip()
+    clock.tick(60)
+
+pygame.quit()
+"""
+
+
+"""
+import pygame
+import random
+
+pygame.init()
+screen = pygame.display.set_mode((800, 600))
+clock = pygame.time.Clock() 
+
+enemies = []
+# [3단계] 코드
+for i in range(5):
+    enemy = {
+        'x': random.randint(0, 750),
+        'y': random.randint(0, 300),
+        'speed': random.randint(2, 5)
+    }
+    enemies.append(enemy)
+
+running = True
+
+while running:  
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+    # 인게임 로직
+    screen.fill((0, 0, 0))
+    # [4단계] 코드
+    for enemy in enemies:
+        enemy['y'] += enemy['speed']
+
+        if enemy['y'] > 600:
+            enemy['y'] = 0
+            enemy['x'] = random.randint(0, 750)
+
+        pygame.draw.rect(screen, (255, 0, 0), (enemy['x'], enemy['y'], 50, 50))
+    # [5단계] 코드
+
+    pygame.display.flip()
+    clock.tick(60)
+
+pygame.quit()
+"""
