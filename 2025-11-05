@@ -1,0 +1,129 @@
+import pygame
+import random
+import math
+
+# 초기화
+pygame.init()
+
+# 화면 설정
+WIDTH, HEIGHT = 800, 600
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("패링 게임 2단계")
+
+# 색상
+WHITE = (255, 255, 255)
+RED = (255, 50, 50)
+BLUE = (50, 100, 255)
+GREEN = (50, 255, 50)
+BLACK = (0, 0, 0)
+
+font = pygame.font.SysFont(None, 36)
+
+# 플레이어 설정
+player_size = 50
+player_pos = (WIDTH // 2, HEIGHT // 2)
+player_rect = pygame.Rect(player_pos[0] - player_size//2, player_pos[1] - player_size//2, player_size, player_size)
+parry_range = 120
+
+# 투사체 설정
+projectiles = []
+PROJECTILE_SPEED = 4
+SPAWN_INTERVAL = 1000
+last_spawn_time = 0
+
+# 변수
+score = 0
+hp = 5
+last_space_pressed = False  # 스페이스 꾹 방지용
+PARRY_COOLDOWN = 200  
+last_parry_time = 0
+
+clock = pygame.time.Clock()
+running = True
+
+while running:
+    dt = clock.tick(60)
+    current_time = pygame.time.get_ticks()
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+    keys = pygame.key.get_pressed()
+
+    # 투사체 생성
+    if current_time - last_spawn_time > SPAWN_INTERVAL:
+        side = random.choice(["top", "bottom", "left", "right"])
+        if side == "top":
+            x, y = random.randint(0, WIDTH), 0
+        elif side == "bottom":
+            x, y = random.randint(0, WIDTH), HEIGHT
+        elif side == "left":
+            x, y = 0, random.randint(0, HEIGHT)
+        else:
+            x, y = WIDTH, random.randint(0, HEIGHT)
+
+        dx, dy = player_pos[0] - x, player_pos[1] - y
+        dist = math.hypot(dx, dy)
+        dx, dy = dx / dist, dy / dist
+        projectiles.append({
+            "x": x, "y": y, "dx": dx, "dy": dy, "reversed": False
+        })
+        last_spawn_time = current_time
+
+    # 투사체 이동
+    for p in projectiles:
+        p["x"] += p["dx"] * PROJECTILE_SPEED
+        p["y"] += p["dy"] * PROJECTILE_SPEED
+
+    # 패링 입력
+    parry_pressed = keys[pygame.K_SPACE] and not last_space_pressed
+    if parry_pressed and current_time - last_parry_time > PARRY_COOLDOWN:
+        parry_success = False
+        for p in projectiles:
+            dist = math.hypot(p["x"] - player_pos[0], p["y"] - player_pos[1])
+            if dist < parry_range and not p["reversed"]:
+                p["dx"] *= -1
+                p["dy"] *= -1
+                p["reversed"] = True
+                parry_success = True
+                score += 1  
+        if not parry_success:
+            hp -= 1  
+        last_parry_time = current_time
+
+    last_space_pressed = keys[pygame.K_SPACE]
+
+    # 투사체 충돌 (HP 감소)
+    for p in projectiles:
+        dist = math.hypot(p["x"] - player_pos[0], p["y"] - player_pos[1])
+        if dist < player_size / 2 and not p["reversed"]:
+            hp -= 1
+            projectiles.remove(p)
+            break
+
+
+    screen.fill(BLACK)
+    pygame.draw.rect(screen, WHITE, player_rect)
+    pygame.draw.circle(screen, (255, 255, 0), player_pos, parry_range, 2)
+
+    for p in projectiles:
+        color = GREEN if p["reversed"] else RED
+        pygame.draw.circle(screen, color, (int(p["x"]), int(p["y"])), 8)
+
+    # 점수 / HP 표시
+    score_text = font.render(f"Score: {score}", True, WHITE)
+    hp_text = font.render(f"HP: {hp}", True, WHITE)
+    screen.blit(score_text, (20, 20))
+    screen.blit(hp_text, (20, 60))
+
+    # 게임 오버
+    if hp <= 0:
+        game_over_text = font.render("GAME OVER", True, RED)
+        screen.blit(game_over_text, (WIDTH//2 - 100, HEIGHT//2 - 20))
+        pygame.display.flip()
+        pygame.time.wait(2000)
+        running = False
+
+    pygame.display.flip()
+
+pygame.quit()
