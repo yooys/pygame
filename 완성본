@@ -1,0 +1,333 @@
+import pygame
+import random
+import math
+import sys
+
+pygame.init()
+
+# 화면 설정
+WIDTH, HEIGHT = 800, 600
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Parry Game - Meteor Trail")
+
+# 색상
+WHITE = (255, 255, 255)
+RED = (255, 50, 50)
+YELLOW = (255, 255, 0)
+
+font = pygame.font.SysFont(None, 36)
+big_font = pygame.font.SysFont(None, 72)
+
+# 리소스 로드
+background = pygame.image.load("우주배경1.PNG")
+background = pygame.transform.scale(background, (WIDTH, HEIGHT))
+
+meteor_image = pygame.image.load("운석.png").convert_alpha()
+meteor_image = pygame.transform.scale(meteor_image, (32, 32))
+
+earth_image = pygame.image.load("지구.png").convert_alpha()
+player_size = 50
+earth_image = pygame.transform.scale(earth_image, (player_size, player_size))
+
+# 상수
+SPAWN_INTERVAL = 1000
+SPEED_INCREASE_INTERVAL = 10000
+SPECIAL_PROJECTILE_SPEED_RANGE = (2, 3)
+
+# 전역 상태 변수
+projectiles = []
+PROJECTILE_SPEED = 4
+last_spawn_time = 0
+last_speed_increase_time = 0
+last_parry_change_time = 0
+
+parry_range = 120
+base_parry_range = parry_range
+range_reduced = False
+parry_color = (255, 255, 0)
+shake_start_time = 0
+SHAKE_DURATION = 500
+SHAKE_INTENSITY = 10
+
+score = 0
+hp = 5
+last_space_pressed = False
+PARRY_COOLDOWN = 200
+last_parry_time = 0
+
+special_event_triggered = False
+
+# 플레이어 위치
+player_pos = [WIDTH // 2, HEIGHT // 2]
+player_radius = player_size // 2
+
+# 상태 플래그 / 타이머
+start_time = pygame.time.get_ticks()
+running = True
+game_cleared = False
+game_over = False
+
+clock = pygame.time.Clock()
+
+# 버튼 그리기 함수
+def draw_button(text, x, y, w, h, color, hover_color, mouse_pos):
+    rect = pygame.Rect(x, y, w, h)
+    is_hover = rect.collidepoint(mouse_pos)
+    pygame.draw.rect(screen, hover_color if is_hover else color, rect, border_radius=10)
+    label = font.render(text, True, WHITE)
+    screen.blit(label, (x + w//2 - label.get_width()//2, y + h//2 - label.get_height()//2))
+    return rect
+
+# 완전 초기화 함수 
+def restart_game():
+    global projectiles, PROJECTILE_SPEED, last_spawn_time, last_speed_increase_time
+    global last_parry_change_time, parry_range, base_parry_range, range_reduced, parry_color
+    global score, hp, last_space_pressed, last_parry_time, special_event_triggered
+    global start_time, game_cleared, game_over, shake_start_time
+    global player_pos
+
+    # 빈 리스트 및 상태 초기화
+    projectiles.clear()
+    PROJECTILE_SPEED = 4
+
+    # 타이머들을 '현재' 시각으로 초기화
+    now = pygame.time.get_ticks()
+    start_time = now
+    last_spawn_time = now
+    last_speed_increase_time = now
+    last_parry_change_time = now
+
+    # 게임/플레이어 상태 초기화
+    parry_range = 120
+    base_parry_range = parry_range
+    range_reduced = False
+    parry_color = (255, 255, 0)
+    shake_start_time = 0
+
+    score = 0
+    hp = 5
+    last_space_pressed = False
+    last_parry_time = 0
+
+    special_event_triggered = False
+
+    # 플레이어 위치도 중앙으로 초기화
+    player_pos = [WIDTH // 2, HEIGHT // 2]
+
+    game_cleared = False
+    game_over = False
+
+    print("🔁 RESTART")
+
+# 초기화 호출
+restart_game()
+
+# 게임 루프
+while running:
+    dt = clock.tick(60)
+    current_time = pygame.time.get_ticks()
+    elapsed_time = (current_time - start_time) / 1000.0
+
+    # 이벤트 처리
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+        # 게임 클리어 또는 오버 후 버튼 클릭 처리
+        if (game_cleared or game_over) and event.type == pygame.MOUSEBUTTONDOWN:
+            mx, my = event.pos
+            try:
+                if restart_button.collidepoint((mx, my)):
+                    restart_game()
+                elif quit_button.collidepoint((mx, my)):
+                    running = False
+            except NameError:
+                pass
+
+    # 게임 클리어/오버 화면
+    if game_cleared or game_over:
+        screen.blit(background, (0, 0))
+        title_text = big_font.render("GAME CLEAR!" if game_cleared else "GAME OVER", True, YELLOW if game_cleared else RED)
+        screen.blit(title_text, (WIDTH//2 - title_text.get_width()//2, HEIGHT//3))
+
+        mouse_pos = pygame.mouse.get_pos()
+        restart_button = draw_button("RESTART", WIDTH//2 - 150, HEIGHT//2, 130, 50, (0,150,0), (0,200,0), mouse_pos)
+        quit_button = draw_button("QUIT", WIDTH//2 + 20, HEIGHT//2, 130, 50, (150,0,0), (200,0,0), mouse_pos)
+
+        pygame.display.flip()
+        continue
+
+    keys = pygame.key.get_pressed()
+
+    # 70초가 되면 게임 클리어
+    if elapsed_time >= 70:
+        game_cleared = True
+        print("🎉 GAME CLEAR!")
+        continue
+
+    # 10초마다 속도 10% 증가
+    if current_time - last_speed_increase_time >= SPEED_INCREASE_INTERVAL:
+        PROJECTILE_SPEED *= 1.1
+        last_speed_increase_time = current_time
+
+    # 10초 후 패링 범위 감소
+    if not range_reduced and elapsed_time >= 10:
+        parry_range = int(parry_range * 0.8)
+        base_parry_range = parry_range
+        range_reduced = True
+
+    # 20~40초 동안 패링 범위 랜덤(0.5 ~ 1.5배) 변화
+    if 20 <= elapsed_time <= 40:
+        if current_time - last_parry_change_time >= 2000:
+            scale = random.uniform(0.5, 1.5)
+            parry_range = int(base_parry_range * scale)
+            last_parry_change_time = current_time
+            shake_start_time = current_time
+            parry_color = (
+                random.randint(100,255),
+                random.randint(100,255),
+                random.randint(100,255)
+            )
+    elif elapsed_time > 40:
+        parry_range = base_parry_range
+        parry_color = (255,255,0)
+
+    # 60초 이벤트 (한 번만)
+    if elapsed_time >= 60 and not special_event_triggered:
+        directions = ["top","bottom","left","right"]
+        for side in directions:
+            for i in range(5):
+                if side == "top":
+                    x = 100 + i * (WIDTH - 200) / 4
+                    y = -20
+                elif side == "bottom":
+                    x = 100 + i * (WIDTH - 200) / 4
+                    y = HEIGHT + 20
+                elif side == "left":
+                    x = -20
+                    y = 100 + i * (HEIGHT - 200) / 4
+                else:
+                    x = WIDTH + 20
+                    y = 100 + i * (HEIGHT - 200) / 4
+
+                dx = player_pos[0] - x
+                dy = player_pos[1] - y
+                dist = math.hypot(dx, dy) if (dx != 0 or dy != 0) else 1
+                dx, dy = dx / dist, dy / dist
+
+                projectiles.append({
+                    "x": x, "y": y,
+                    "dx": dx, "dy": dy,
+                    "angle": random.randint(0,360),
+                    "rotation_speed": random.uniform(2,6) * random.choice([-1,1]),
+                    "trail": [],
+                    "speed": random.uniform(*SPECIAL_PROJECTILE_SPEED_RANGE),
+                    "reversed": False
+                })
+        special_event_triggered = True
+
+    # 일반 투사체 생성
+    if current_time - last_spawn_time > SPAWN_INTERVAL:
+        side = random.choice(["top","bottom","left","right"])
+        if side == "top":
+            x, y = random.randint(0, WIDTH), 0
+        elif side == "bottom":
+            x, y = random.randint(0, WIDTH), HEIGHT
+        elif side == "left":
+            x, y = 0, random.randint(0, HEIGHT)
+        else:
+            x, y = WIDTH, random.randint(0, HEIGHT)
+
+        dx = player_pos[0] - x
+        dy = player_pos[1] - y
+        dist = math.hypot(dx, dy) if (dx != 0 or dy != 0) else 1
+        dx, dy = dx / dist, dy / dist
+
+        projectiles.append({
+            "x": x, "y": y,
+            "dx": dx, "dy": dy,
+            "reversed": False,
+            "angle": random.randint(0,360),
+            "rotation_speed": random.uniform(2,6) * random.choice([-1,1]),
+            "trail": [],
+            "speed": PROJECTILE_SPEED
+        })
+        last_spawn_time = current_time
+
+    # 이동 / 회전 / 트레일 갱신
+    for p in projectiles:
+        p["x"] += p["dx"] * p.get("speed", PROJECTILE_SPEED)
+        p["y"] += p["dy"] * p.get("speed", PROJECTILE_SPEED)
+        p["angle"] = (p["angle"] + p.get("rotation_speed", 0)) % 360
+        p["trail"].append((p["x"], p["y"]))
+        if len(p["trail"]) > 10:
+            p["trail"].pop(0)
+
+    # 패링 입력 처리
+    parry_pressed = keys[pygame.K_SPACE] and not last_space_pressed if (keys := pygame.key.get_pressed()) else False
+    if parry_pressed and current_time - last_parry_time > PARRY_COOLDOWN:
+        parry_success = False
+        for p in projectiles:
+            dist = math.hypot(p["x"] - player_pos[0], p["y"] - player_pos[1])
+            if dist < parry_range and not p.get("reversed", False):
+                p["dx"] *= -1
+                p["dy"] *= -1
+                p["reversed"] = True
+                parry_success = True
+                score += 1
+        if not parry_success:
+            hp -= 1
+        last_parry_time = current_time
+    # 마지막 스페이스 상태 저장
+    last_space_pressed = keys[pygame.K_SPACE]
+
+    # 충돌 검사
+    for p in projectiles[:]:
+        dist = math.hypot(p["x"] - player_pos[0], p["y"] - player_pos[1])
+        if dist < (player_radius) and not p.get("reversed", False):
+            hp -= 1
+            projectiles.remove(p)
+
+    # 배경 그리기
+    screen.blit(background, (0, 0))
+    # 플레이어 그리기
+    screen.blit(earth_image, (player_pos[0] - player_size//2, player_pos[1] - player_size//2))
+
+    # 진동
+    shake_offset = 0
+    if pygame.time.get_ticks() - shake_start_time < SHAKE_DURATION:
+        shake_offset = math.sin((pygame.time.get_ticks() - shake_start_time) * 0.05) * SHAKE_INTENSITY
+    pygame.draw.circle(screen, parry_color, player_pos, int(parry_range + shake_offset), 2)
+
+    # 트레일 그리기
+    for p in projectiles:
+        for i, pos in enumerate(p["trail"]):
+            if len(p["trail"]) == 0:
+                continue
+            alpha = int(255 * ((i / len(p["trail"])) ** 1.5))
+            trail_surface = pygame.Surface((8,8), pygame.SRCALPHA)
+            pygame.draw.circle(trail_surface, (255,200,50,alpha), (4,4), 4)
+            screen.blit(trail_surface, (pos[0]-4, pos[1]-4))
+
+    # 운석 그리기
+    for p in projectiles:
+        rotated = pygame.transform.rotate(meteor_image, p["angle"])
+        rotated = rotated.convert_alpha()
+        rect = rotated.get_rect(center=(int(p["x"]), int(p["y"])))
+        screen.blit(rotated, rect)
+
+    # UI: Score, HP, Time, Speed
+    screen.blit(font.render(f"Score: {score}", True, WHITE), (20, 20))
+    screen.blit(font.render(f"HP: {hp}", True, WHITE), (20, 60))
+    screen.blit(font.render(f"Time: {int(elapsed_time)}s", True, WHITE), (20, 100))
+    screen.blit(font.render(f"Speed: {PROJECTILE_SPEED:.2f}", True, WHITE), (20, 140))
+
+    # 게임 오버 체크
+    if hp <= 0:
+        game_over = True
+        continue
+
+    pygame.display.flip()
+
+pygame.quit()
+sys.exit()
